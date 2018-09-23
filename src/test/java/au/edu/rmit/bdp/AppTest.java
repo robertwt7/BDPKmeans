@@ -1,4 +1,4 @@
-package au.edu.rmit.bdp.customdata;
+package au.edu.rmit.bdp;
 
 import static org.junit.Assert.assertTrue;
 

@@ -1,4 +1,4 @@
-package au.edu.rmit.bdp.customdata;
+package au.edu.rmit.bdp.ClusteringIMC;
 
 
 import org.apache.hadoop.conf.Configuration;
