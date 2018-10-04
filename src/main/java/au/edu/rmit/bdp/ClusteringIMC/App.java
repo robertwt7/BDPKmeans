@@ -3,23 +3,24 @@ package au.edu.rmit.bdp.ClusteringIMC;
 
 import au.edu.rmit.bdp.model.Centroid;
 import au.edu.rmit.bdp.model.DataPoint;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 //Commons-csv
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 
@@ -37,6 +38,8 @@ import java.util.Random;
  */
 public class App extends Configured implements Tool
 {
+    private static final Log LOG = LogFactory.getLog(App.class);
+
     public static void main( String[] args) throws Exception
     {
         System.exit(ToolRunner.run(new App(), args));
@@ -60,12 +63,12 @@ public class App extends Configured implements Tool
         Job job = Job.getInstance(conf, "KMeans App");
 
         job.setMapperClass(KmeansMapping.class);
-        job.setReducerClass(KmeansReducing.class);
-        job.setJarByClass(App.class);
+        job.setReducerClass(KmeansReducer.class);
+        job.setJarByClass(KmeansMapping.class);
 
-        FileInputFormat.setInputPaths(job, pointDataPath);
+        //Check the data if it's available or not
         FileSystem fs = FileSystem.get(conf);
-        FileOutputFormat.setOutputPath(job, outputDir);
+
         if (fs.exists(outputDir)) {
             fs.delete(outputDir, true);
         }
@@ -78,24 +81,85 @@ public class App extends Configured implements Tool
             fs.delete(pointDataPath, true);
         }
 
+        //Lists for columns 1 and 2 data points
+        List<Integer> col1 = new ArrayList<Integer>();
+        List<Integer> col2 = new ArrayList<Integer>();
+
+        //Generate the points previously so the dataPoints is available for input file
+        generatePoints(args, conf, pointDataPath, col1, col2);
+
+        FileInputFormat.setInputPaths(job, pointDataPath);
+
+        //Generate centroids based on the maximum points available (randomised)
+        generateCentroids(args, conf, centroidDataPath, col1, col2);
+
         job.setNumReduceTasks(1);
-        job.setInputFormatClass(TextInputFormat.class);
+        FileOutputFormat.setOutputPath(job, outputDir);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        job.setOutputFormatClass(TextOutputFormat.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(Centroid.class);
+        job.setOutputValueClass(DataPoint.class);
 
-        System.exit(job.waitForCompletion(true)? 0 : 1);
+        job.waitForCompletion(true);
+
+        long counter = job.getCounters().findCounter(KmeansReducer.Counter.CONVERGED).getValue();
+        iteration++;
+        while (counter > 0){
+            conf = new Configuration();
+            conf.set("centroid.path", centroidDataPath.toString());
+            conf.set("num.iteration", iteration + "");
+            job = Job.getInstance(conf, "KMeans App " + iteration);
+
+            job.setMapperClass(KmeansMapping.class);
+            job.setReducerClass(KmeansReducer.class);
+            job.setJarByClass(KmeansMapping.class);
+
+            pointDataPath = new Path(args[0] + "clustering/depth_" + (iteration - 1) + "/");
+            outputDir = new Path(args[1] + "clustering/depth_" + iteration);
+
+            FileInputFormat.addInputPath(job, pointDataPath);
+            if (fs.exists(outputDir))
+                fs.delete(outputDir, true);
+
+            FileOutputFormat.setOutputPath(job, outputDir);
+            job.setInputFormatClass(SequenceFileInputFormat.class);
+            job.setOutputFormatClass(SequenceFileOutputFormat.class);
+            job.setOutputKeyClass(Centroid.class);
+            job.setOutputValueClass(DataPoint.class);
+            job.setNumReduceTasks(1);
+
+            job.waitForCompletion(true);
+            iteration++;
+            counter = job.getCounters().findCounter(KmeansReducer.Counter.CONVERGED).getValue();
+        }
+
+        Path result = new Path(args[1] + "clustering/depth_" + (iteration - 1) + "/");
+        FileStatus[] stati = fs.listStatus(result);
+        for (FileStatus status : stati) {
+            if (!status.isDirectory()) {
+                Path path = status.getPath();
+                if (!path.getName().equals("_SUCCESS")) {
+                    LOG.info("FOUND " + path.toString());
+                    SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
+                    try (SequenceFile.Reader reader = new SequenceFile.Reader(conf, opPath)){
+                        Centroid key = new Centroid();
+                        DataPoint v = new DataPoint();
+                        while (reader.next(key, v)){
+                            LOG.info(key + " / " + v);
+                        }
+                    }
+                }
+            }
+        }
+
         return 0;
     }
 
     //5 arguments: input, output, number of K, column 1, column 2
     //Read csv from 1st arguments
-    public static void generatePoints(String[] args, Configuration conf, Path out, FileSystem fs) throws IOException{
+    public static void generatePoints(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws IOException{
         try (Reader in = new FileReader(args[0])){
-            List<Integer> col1 = new ArrayList<Integer>();
-            List<Integer> col2 = new ArrayList<Integer>();
-
             Iterable<CSVRecord> records = CSVFormat.RFC4180.parse(in);
 
             // non deprecated func uses option class
@@ -118,7 +182,8 @@ public class App extends Configured implements Tool
     }
 
     //Taking the amount or K from user input from argument 2 and create random clusters
-    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws IOException, InterruptedException{
+    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws
+            IOException, InterruptedException{
         SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
         SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
         SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(IntWritable.class);

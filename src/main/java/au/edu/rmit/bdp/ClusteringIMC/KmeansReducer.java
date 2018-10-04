@@ -1,9 +1,11 @@
-package au.edu.rmit.bdp.ClusteringReg;
+package au.edu.rmit.bdp.ClusteringIMC;
 
-import au.edu.rmit.bdp.ClusteringIMC.KmeansReducer;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import au.edu.rmit.bdp.model.Centroid;
-import au.edu.rmit.bdp.model.DataPoint;
-import de.jungblut.math.DoubleVector;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -11,12 +13,10 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import au.edu.rmit.bdp.model.DataPoint;
+import de.jungblut.math.DoubleVector;
 
-public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPoint> {
+public class KmeansReducer extends Reducer<Centroid, Map<Centroid, List<DataPoint>>, Centroid, DataPoint>{
 
     public static enum Counter{
         CONVERGED
@@ -25,17 +25,19 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
     private final List<Centroid> centers = new ArrayList<>();
 
     @Override
-    protected void reduce(Centroid key, Iterable<DataPoint> values, Context context) throws IOException, InterruptedException {
+    protected void reduce(Centroid key, Iterable<Map<Centroid, List<DataPoint>>> values, Context context) throws IOException, InterruptedException {
         List<DataPoint> vectorList = new ArrayList<>();
         DoubleVector newCenter = null;
 
         //get every of the data point based on specific centroid in the assoc array
-        for (DataPoint value : values) {
-            vectorList.add(new DataPoint(value));
-            if (newCenter == null)
-                newCenter = value.getVector().deepCopy();
-            else
-                newCenter = newCenter.add(value.getVector());
+        for (Map<Centroid, List<DataPoint>> v : values) {
+            for (DataPoint value : v.get(key)){
+                vectorList.add(new DataPoint(value));
+                if (newCenter == null)
+                    newCenter = value.getVector().deepCopy();
+                else
+                    newCenter = newCenter.add(value.getVector());
+            }
         }
         newCenter = newCenter.divide(vectorList.size());
         Centroid newCentroid = new Centroid(newCenter);
@@ -45,7 +47,8 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
             context.write(newCentroid, vector);
         }
         if (newCentroid.update(key))
-            context.getCounter(KmeansReducer.Counter.CONVERGED).increment(1);
+            context.getCounter(Counter.CONVERGED).increment(1);
+
     }
 
     @Override
@@ -67,7 +70,4 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
             }
         }
     }
-
-
-
 }
