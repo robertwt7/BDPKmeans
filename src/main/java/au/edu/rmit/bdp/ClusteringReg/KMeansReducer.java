@@ -1,6 +1,5 @@
 package au.edu.rmit.bdp.ClusteringReg;
 
-import au.edu.rmit.bdp.ClusteringIMC.KmeansReducing;
 import au.edu.rmit.bdp.model.Centroid;
 import au.edu.rmit.bdp.model.DataPoint;
 import de.jungblut.math.DoubleVector;
@@ -17,7 +16,7 @@ import java.util.List;
 
 public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPoint> {
 
-    public static enum Counter{
+    public enum Counter2{
         CONVERGED
     }
 
@@ -44,7 +43,7 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
             context.write(newCentroid, vector);
         }
         if (newCentroid.update(key))
-            context.getCounter(KmeansReducing.Counter.CONVERGED).increment(1);
+            context.getCounter(KMeansReducer.Counter2.CONVERGED).increment(1);
     }
 
     @Override

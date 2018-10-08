@@ -96,7 +96,7 @@ public class App extends Configured implements Tool
 
         job.waitForCompletion(true);
 
-        long counter = job.getCounters().findCounter(KMeansReducer.Counter.CONVERGED).getValue();
+        long counter = job.getCounters().findCounter(KMeansReducer.Counter2.CONVERGED).getValue();
         iteration++;
         while (counter > 0){
             conf = new Configuration();
@@ -124,7 +124,7 @@ public class App extends Configured implements Tool
 
             job.waitForCompletion(true);
             iteration++;
-            counter = job.getCounters().findCounter(KMeansReducer.Counter.CONVERGED).getValue();
+            counter = job.getCounters().findCounter(KMeansReducer.Counter2.CONVERGED).getValue();
             System.out.println(counter);
         }
 

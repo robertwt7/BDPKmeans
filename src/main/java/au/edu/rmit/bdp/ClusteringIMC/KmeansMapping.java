@@ -66,8 +66,13 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         super.cleanup(context);
-        for (Centroid a : assocArray.keySet()){
-            context.write(a, assocArray.get(a));
+        try {
+            for (Centroid a : assocArray.keySet()){
+                context.write(a, assocArray.get(a));
+            }
+        } catch (IOException a){
+            printLongerTrace(a);
+            throw a;
         }
     }
 
@@ -107,5 +112,14 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
         }
         //Does not called in IMC
         //context.write(nearest, value);
+
+    }
+
+
+    //Debugging
+    static void printLongerTrace(Throwable t){
+        for(StackTraceElement e: t.getStackTrace()){
+            System.out.println(e);
+        }
     }
 }
