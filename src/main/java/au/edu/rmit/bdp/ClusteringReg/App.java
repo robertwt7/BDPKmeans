@@ -86,7 +86,7 @@ public class App extends Configured implements Tool
         //Generate centroids based on the maximum points available (randomised)
         generateCentroids(args, conf, centroidDataPath, col1, col2);
 
-        job.setNumReduceTasks(3);
+        job.setNumReduceTasks(2);
         FileOutputFormat.setOutputPath(job, outputDir);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
