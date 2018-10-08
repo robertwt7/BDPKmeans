@@ -56,10 +56,10 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Map<Cen
 
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-        super.cleanup(context);
         for (Centroid a : assocArray.keySet()){
             context.write(a, assocArray);
         }
+        super.cleanup(context);
     }
 
     @Override

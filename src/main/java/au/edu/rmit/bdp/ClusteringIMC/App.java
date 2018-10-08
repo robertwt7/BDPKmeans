@@ -10,6 +10,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.mapreduce.Job;
@@ -27,10 +28,7 @@ import org.apache.commons.csv.CSVRecord;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Hello world!
@@ -53,10 +51,10 @@ public class App extends Configured implements Tool
         conf.set("num.iteration", iteration + "");
 
         //5 arguments: input, output, number of K, column 1, column 2
-        Path pointDataPath = new Path(args[0] + "/data.seq");
-        Path centroidDataPath = new Path(args[0] + "/centroid.seq");
+        Path pointDataPath = new Path(args[1] + "/data.seq");
+        Path centroidDataPath = new Path(args[1] + "/centroid.seq");
         conf.set("centroid.path", centroidDataPath.toString());
-        Path outputDir = new Path(args[1] + "clustering/depth_1");
+        Path outputDir = new Path(args[1] + "/clustering/depth_1");
 
         //Model 1, with inMapper Combiner
         //Job job = new Job(conf, "Clustering"); *deprecated
@@ -65,6 +63,8 @@ public class App extends Configured implements Tool
         job.setMapperClass(KmeansMapping.class);
         job.setReducerClass(KmeansReducer.class);
         job.setJarByClass(KmeansMapping.class);
+        job.setMapOutputKeyClass(Centroid.class);
+        job.setMapOutputValueClass(HashMap.class);
 
         //Check the data if it's available or not
         FileSystem fs = FileSystem.get(conf);
@@ -115,8 +115,8 @@ public class App extends Configured implements Tool
             job.setReducerClass(KmeansReducer.class);
             job.setJarByClass(KmeansMapping.class);
 
-            pointDataPath = new Path(args[0] + "clustering/depth_" + (iteration - 1) + "/");
-            outputDir = new Path(args[1] + "clustering/depth_" + iteration);
+            pointDataPath = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
+            outputDir = new Path(args[1] + "/clustering/depth_" + iteration);
 
             FileInputFormat.addInputPath(job, pointDataPath);
             if (fs.exists(outputDir))
@@ -134,7 +134,7 @@ public class App extends Configured implements Tool
             counter = job.getCounters().findCounter(KmeansReducer.Counter.CONVERGED).getValue();
         }
 
-        Path result = new Path(args[1] + "clustering/depth_" + (iteration - 1) + "/");
+        Path result = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
         FileStatus[] stati = fs.listStatus(result);
         for (FileStatus status : stati) {
             if (!status.isDirectory()) {
@@ -183,8 +183,11 @@ public class App extends Configured implements Tool
                     dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
                     col1.add(point1);
                     col2.add(point2);
+                    System.out.println("Reading line: " + String.valueOf(labels));
+                    labels++;
                 }
             }
+            IOUtils.closeStream(dataWriter);
         }
     }
 
@@ -200,5 +203,6 @@ public class App extends Configured implements Tool
             Random r = new Random();
             centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
         }
+        IOUtils.closeStream(centerWriter);
     }
 }
