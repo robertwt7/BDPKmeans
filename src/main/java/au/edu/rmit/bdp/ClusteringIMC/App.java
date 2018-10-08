@@ -93,6 +93,8 @@ public class App extends Configured implements Tool
         //Generate centroids based on the maximum points available (randomised)
         generateCentroids(args, conf, centroidDataPath, col1, col2);
 
+        try {
+
         job.setNumReduceTasks(1);
         FileOutputFormat.setOutputPath(job, outputDir);
         job.setInputFormatClass(SequenceFileInputFormat.class);
@@ -151,6 +153,11 @@ public class App extends Configured implements Tool
                     }
                 }
             }
+
+        }
+        } catch (Exception e){
+            printLongerTrace(e);
+            throw e;
         }
 
         return 0;
@@ -187,6 +194,13 @@ public class App extends Configured implements Tool
                 }
             }
             IOUtils.closeStream(dataWriter);
+        }
+    }
+
+    static void printLongerTrace(Throwable t){
+        for(StackTraceElement e: t.getStackTrace()){
+            LOG.error(e);
+            System.out.println(e);
         }
     }
 
