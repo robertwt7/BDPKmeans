@@ -8,13 +8,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.MapTask;
 import org.apache.hadoop.mapreduce.Mapper;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,10 +19,12 @@ import java.util.List;
 import java.util.Map;
 
 //last generic that specifies the output value is changed to assoc array
-public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<DataPoint>> {
+public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
 
     private final List<Centroid> centers = new ArrayList<>();
     private DistanceMeasurer distanceMeasurer;
+
+    private List<DataPoint> dp;
 
     //Initiate associative array
     Map<Centroid, List<DataPoint>> assocArray;
@@ -36,6 +35,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
 
         //Setup assoc array and list
         assocArray = getMap();
+        dp = new ArrayList<DataPoint>();
 
         Configuration conf = context.getConfiguration();
         Path centroids = new Path(conf.get("centroid.path"));
@@ -51,7 +51,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
                 Centroid centroid = new Centroid(key);
                 centroid.setClusterIndex(index++);
                 centers.add(centroid);
-                assocArray.put(centroid, null);
+                assocArray.put(centroid, dp);
             }
         }
         distanceMeasurer = new EuclidianDistance();
@@ -66,14 +66,19 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
         super.cleanup(context);
+        Text value = new Text();
         for (Centroid a : assocArray.keySet()){
-            context.write(a, assocArray.get(a));
+            if (assocArray.get(a).toArray().length > 0){
+                for (DataPoint point : assocArray.get(a)){
+                    value.set(value + point.toString() + ", ");
+                }
+                context.write(a, value);
+            }
         }
     }
 
     @Override
     protected void map(Centroid key, DataPoint value, Context context) throws IOException, InterruptedException {
-        super.map(key, value, context);
         assocArray = getMap();
 
         Centroid nearest = null;
@@ -93,24 +98,14 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, List<Da
             }
         }
 
-        List<DataPoint> dp = new ArrayList<>();
 
         //Fill assoc array with list
+        dp = assocArray.get(nearest);
+        dp.add(value);
+        assocArray.put(nearest,dp);
 
-        if (assocArray.get(nearest) == null) {
-            dp.add(value);
-            assocArray.put(nearest, dp);
-        } else {
-            dp = assocArray.get(nearest);
-            dp.add(value);
-            assocArray.put(nearest,dp);
-        }
         //Does not called in IMC
         //context.write(nearest, value);
 
     }
-
-
-    //Debugging
-
 }
