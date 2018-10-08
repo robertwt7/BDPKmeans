@@ -93,7 +93,7 @@
     <!--</pluginManagement>-->
   <!--</build>-->
   <build>
-    <sourceDirectory>src/</sourceDirectory>
+    <sourceDirectory>src/main/java/</sourceDirectory>
     <resources>
       <resource>
         <directory>resources</directory>

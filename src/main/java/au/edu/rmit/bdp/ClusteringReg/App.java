@@ -162,15 +162,21 @@ public class App extends Configured implements Tool
             SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(DataPoint.class);
             SequenceFile.Writer dataWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue);
 
+            int labels = 0;
             //Get the column 1 and 2 to list
             for (CSVRecord record : records){
-                String columnOne = record.get(args[3]);
-                String columnTwo = record.get((args[4]));
-                int point1 = Integer.valueOf(columnOne);
-                int point2 = Integer.valueOf(columnTwo);
-                dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
-                col1.add(point1);
-                col2.add(point2);
+                if(labels == 0){
+                    //do something for the labels
+                    labels ++;
+                } else {
+                    String columnOne = record.get(Integer.valueOf(args[3]));
+                    String columnTwo = record.get(Integer.valueOf(args[4]));
+                    int point1 = Integer.valueOf(columnOne);
+                    int point2 = Integer.valueOf(columnTwo);
+                    dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
+                    col1.add(point1);
+                    col2.add(point2);
+                }
             }
         }
     }
@@ -178,13 +184,14 @@ public class App extends Configured implements Tool
     //Taking the amount or K from user input from argument 2 and create random clusters
     public static void generateCentroids(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws
             IOException, InterruptedException{
+        final IntWritable value = new IntWritable(0);
         SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
         SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
         SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(IntWritable.class);
         SequenceFile.Writer centerWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue);
         for (int i = 0; i < Integer.valueOf(args[2]); i++){
             Random r = new Random();
-            centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), opValue);
+            centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
         }
 
     }
