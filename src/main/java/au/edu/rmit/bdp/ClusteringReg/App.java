@@ -126,6 +126,7 @@ public class App extends Configured implements Tool
             job.waitForCompletion(true);
             iteration++;
             counter = job.getCounters().findCounter(KMeansReducer.Counter.CONVERGED).getValue();
+            System.out.println(counter);
         }
 
         Path result = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
