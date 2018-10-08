@@ -16,7 +16,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import au.edu.rmit.bdp.model.DataPoint;
 import de.jungblut.math.DoubleVector;
 
-public class KmeansReducer extends Reducer<Centroid, Map<Centroid, List<DataPoint>>, Centroid, DataPoint>{
+public class KmeansReducing extends Reducer<Centroid, List<DataPoint>, Centroid, DataPoint>{
 
     public static enum Counter{
         CONVERGED
@@ -25,16 +25,18 @@ public class KmeansReducer extends Reducer<Centroid, Map<Centroid, List<DataPoin
     private final List<Centroid> centers = new ArrayList<>();
 
     @Override
-    protected void reduce(Centroid key, Iterable<Map<Centroid, List<DataPoint>>> values, Context context) throws IOException, InterruptedException {
+    protected void reduce(Centroid key, Iterable<List<DataPoint>> values, Context context) throws IOException, InterruptedException {
         List<DataPoint> vectorList = new ArrayList<>();
         DoubleVector newCenter = null;
 
         //get every of the data point based on specific centroid in the assoc array
-        for (Map<Centroid, List<DataPoint>> v : values) {
-            for (DataPoint value : v.get(key)){
+        for (List<DataPoint> v : values) {
+            for (DataPoint value : v){
                 vectorList.add(new DataPoint(value));
-                if (newCenter == null)
+                if (newCenter == null) {
                     newCenter = value.getVector().deepCopy();
+                    System.out.println("New center added");
+                }
                 else
                     newCenter = newCenter.add(value.getVector());
             }

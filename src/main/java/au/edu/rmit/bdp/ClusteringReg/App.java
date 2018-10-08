@@ -51,9 +51,8 @@ public class App extends Configured implements Tool
         conf.set("centroid.path", centroidDataPath.toString());
         Path outputDir = new Path(args[1] + "/clustering/depth_1");
 
-        //Model 1, with inMapper Combiner
         //Job job = new Job(conf, "Clustering"); *deprecated
-        Job job = Job.getInstance(conf, "KMeans App");
+        Job job = Job.getInstance(conf, "KMeans App Without IMC");
 
         job.setMapperClass(KMeansMapper.class);
         job.setReducerClass(KMeansReducer.class);
@@ -87,7 +86,7 @@ public class App extends Configured implements Tool
         //Generate centroids based on the maximum points available (randomised)
         generateCentroids(args, conf, centroidDataPath, col1, col2);
 
-        job.setNumReduceTasks(1);
+        job.setNumReduceTasks(3);
         FileOutputFormat.setOutputPath(job, outputDir);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -134,9 +133,9 @@ public class App extends Configured implements Tool
         for (FileStatus status : stati) {
             if (!status.isDirectory()) {
                 Path path = status.getPath();
+                SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
                 if (!path.getName().equals("_SUCCESS")) {
                     LOG.info("FOUND " + path.toString());
-                    SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
                     try (SequenceFile.Reader reader = new SequenceFile.Reader(conf, opPath)){
                         Centroid key = new Centroid();
                         DataPoint v = new DataPoint();
@@ -147,7 +146,6 @@ public class App extends Configured implements Tool
                 }
             }
         }
-
         return 0;
     }
 

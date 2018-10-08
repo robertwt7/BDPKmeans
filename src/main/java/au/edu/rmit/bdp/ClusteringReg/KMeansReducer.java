@@ -1,6 +1,6 @@
 package au.edu.rmit.bdp.ClusteringReg;
 
-import au.edu.rmit.bdp.ClusteringIMC.KmeansReducer;
+import au.edu.rmit.bdp.ClusteringIMC.KmeansReducing;
 import au.edu.rmit.bdp.model.Centroid;
 import au.edu.rmit.bdp.model.DataPoint;
 import de.jungblut.math.DoubleVector;
@@ -14,7 +14,6 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPoint> {
 
@@ -45,7 +44,7 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
             context.write(newCentroid, vector);
         }
         if (newCentroid.update(key))
-            context.getCounter(KmeansReducer.Counter.CONVERGED).increment(1);
+            context.getCounter(KmeansReducing.Counter.CONVERGED).increment(1);
     }
 
     @Override

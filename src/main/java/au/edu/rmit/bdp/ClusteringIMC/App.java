@@ -61,10 +61,10 @@ public class App extends Configured implements Tool
         Job job = Job.getInstance(conf, "KMeans App");
 
         job.setMapperClass(KmeansMapping.class);
-        job.setReducerClass(KmeansReducer.class);
+        job.setReducerClass(KmeansReducing.class);
         job.setJarByClass(KmeansMapping.class);
         job.setMapOutputKeyClass(Centroid.class);
-        job.setMapOutputValueClass(HashMap.class);
+        job.setMapOutputValueClass(List.class);
 
         //Check the data if it's available or not
         FileSystem fs = FileSystem.get(conf);
@@ -103,7 +103,7 @@ public class App extends Configured implements Tool
 
         job.waitForCompletion(true);
 
-        long counter = job.getCounters().findCounter(KmeansReducer.Counter.CONVERGED).getValue();
+        long counter = job.getCounters().findCounter(KmeansReducing.Counter.CONVERGED).getValue();
         iteration++;
         while (counter > 0){
             conf = new Configuration();
@@ -112,7 +112,7 @@ public class App extends Configured implements Tool
             job = Job.getInstance(conf, "KMeans App " + iteration);
 
             job.setMapperClass(KmeansMapping.class);
-            job.setReducerClass(KmeansReducer.class);
+            job.setReducerClass(KmeansReducing.class);
             job.setJarByClass(KmeansMapping.class);
 
             pointDataPath = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
@@ -131,7 +131,7 @@ public class App extends Configured implements Tool
 
             job.waitForCompletion(true);
             iteration++;
-            counter = job.getCounters().findCounter(KmeansReducer.Counter.CONVERGED).getValue();
+            counter = job.getCounters().findCounter(KmeansReducing.Counter.CONVERGED).getValue();
         }
 
         Path result = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
