@@ -160,7 +160,7 @@ public class App extends Configured implements Tool
     //Read csv from 1st arguments
     public static void generatePoints(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws IOException{
         try (Reader in = new FileReader(args[0])){
-            Iterable<CSVRecord> records = CSVFormat.RFC4180.parse(in);
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
 
             // non deprecated func uses option class
             SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
