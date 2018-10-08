@@ -55,27 +55,25 @@ public class KMeansMapper extends Mapper<Centroid, DataPoint, Centroid, DataPoin
 
 
     @Override
-    protected void map(Centroid key, DataPoint value, Context context) throws IOException, InterruptedException {
-        super.map(key, value, context);
-
+    protected void map(Centroid centroid, DataPoint dataPoint, Context context) throws IOException, InterruptedException {
         Centroid nearest = null;
         double nearestDistance = Double.MAX_VALUE;
 
-        for (Centroid c : centers){
-            double distance = distanceMeasurer.measureDistance(c.getCenterVector(), value.getVector());
+        for (Centroid c : centers) {
+            //done: find the nearest centroid for the current dataPoint, pass the pair to reducer
+            double dist = distanceMeasurer.measureDistance(c.getCenterVector(), dataPoint.getVector());
             if (nearest == null) {
                 nearest = c;
-                nearestDistance = distance;
-            }
-            else {
-                if (nearestDistance > distance) {
+                nearestDistance = dist;
+            } else {
+                if (nearestDistance > dist) {
                     nearest = c;
-                    nearestDistance = distance;
+                    nearestDistance = dist;
                 }
             }
         }
-        //emit the points directly
-        context.write(nearest, value);
+
+        context.write(nearest, dataPoint);
     }
 }
 

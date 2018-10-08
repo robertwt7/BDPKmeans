@@ -25,6 +25,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import javax.xml.crypto.Data;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -86,7 +87,9 @@ public class App extends Configured implements Tool
         //Generate centroids based on the maximum points available (randomised)
         generateCentroids(args, conf, centroidDataPath, col1, col2);
 
-        job.setNumReduceTasks(2);
+        int numReduceTasks = (args.length == 6) ? Integer.parseInt(args[5]) : 2;
+
+        job.setNumReduceTasks(numReduceTasks);
         FileOutputFormat.setOutputPath(job, outputDir);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -120,32 +123,14 @@ public class App extends Configured implements Tool
             job.setOutputFormatClass(SequenceFileOutputFormat.class);
             job.setOutputKeyClass(Centroid.class);
             job.setOutputValueClass(DataPoint.class);
-            job.setNumReduceTasks(1);
+            job.setNumReduceTasks(numReduceTasks);
 
             job.waitForCompletion(true);
             iteration++;
             counter = job.getCounters().findCounter(KMeansReducer.Counter2.CONVERGED).getValue();
             System.out.println(counter);
         }
-
-        Path result = new Path(args[1] + "/clustering/depth_" + (iteration - 1) + "/");
-        FileStatus[] stati = fs.listStatus(result);
-        for (FileStatus status : stati) {
-            if (!status.isDirectory()) {
-                Path path = status.getPath();
-                SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
-                if (!path.getName().equals("_SUCCESS")) {
-                    LOG.info("FOUND " + path.toString());
-                    try (SequenceFile.Reader reader = new SequenceFile.Reader(conf, opPath)){
-                        Centroid key = new Centroid();
-                        DataPoint v = new DataPoint();
-                        while (reader.next(key, v)){
-                            LOG.info(key + " / " + v);
-                        }
-                    }
-                }
-            }
-        }
+        LOG.info("JOB COMPLETED. Final output at: " + args[1] + "/clustering/depth_" + (iteration - 1) + "/");
         return 0;
     }
 
@@ -158,25 +143,25 @@ public class App extends Configured implements Tool
             SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
             SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
             SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(DataPoint.class);
-            SequenceFile.Writer dataWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue);
+            try (SequenceFile.Writer dataWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue)) {
 
-            int labels = 0;
-            //Get the column 1 and 2 to list
-            for (CSVRecord record : records){
-                if(labels == 0){
-                    //do something for the labels
-                    labels ++;
-                } else {
-                    String columnOne = record.get(Integer.valueOf(args[3]));
-                    String columnTwo = record.get(Integer.valueOf(args[4]));
-                    int point1 = Integer.valueOf(columnOne);
-                    int point2 = Integer.valueOf(columnTwo);
-                    dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
-                    col1.add(point1);
-                    col2.add(point2);
+                int labels = 0;
+                //Get the column 1 and 2 to list
+                for (CSVRecord record : records) {
+                    if (labels == 0) {
+                        //do something for the labels
+                        labels++;
+                    } else {
+                        String columnOne = record.get(Integer.valueOf(args[3]));
+                        String columnTwo = record.get(Integer.valueOf(args[4]));
+                        int point1 = Integer.parseInt(columnOne);
+                        int point2 = Integer.parseInt(columnTwo);
+                        dataWriter.append(new Centroid(new DataPoint(0, 0)), new DataPoint(point1, point2));
+                        col1.add(point1);
+                        col2.add(point2);
+                    }
                 }
             }
-            IOUtils.closeStream(dataWriter);
         }
     }
 
@@ -187,12 +172,12 @@ public class App extends Configured implements Tool
         SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
         SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
         SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(IntWritable.class);
-        SequenceFile.Writer centerWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue);
-        for (int i = 0; i < Integer.valueOf(args[2]); i++){
-            Random r = new Random();
-            centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
+        try (SequenceFile.Writer centerWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue)) {
+            for (int i = 0; i < Integer.valueOf(args[2]); i++) {
+                Random r = new Random();
+                centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
+            }
         }
-        IOUtils.closeStream(centerWriter);
 
     }
 }

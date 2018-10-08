@@ -54,13 +54,12 @@ public class KMeansReducer extends Reducer<Centroid, DataPoint, Centroid, DataPo
         FileSystem fs = FileSystem.get(conf);
         fs.delete(outPath, true);
 
-        //writing options
-        SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(outPath);
-        SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
-        SequenceFile.Writer.Option opValue = SequenceFile.Writer.valueClass(IntWritable.class);
-        try (SequenceFile.Writer out = SequenceFile.createWriter(conf, opPath, opKey, opValue)){
+        try (SequenceFile.Writer out = SequenceFile.createWriter(fs, context.getConfiguration(), outPath,
+                Centroid.class, IntWritable.class)) {
+
+            //done: serialize updated centroids.
             final IntWritable value = new IntWritable(0);
-            for(Centroid center : centers){
+            for (Centroid center : centers) {
                 out.append(center, value);
             }
         }
