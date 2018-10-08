@@ -183,7 +183,6 @@ public class App extends Configured implements Tool
                     dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
                     col1.add(point1);
                     col2.add(point2);
-                    System.out.println("Reading line: " + String.valueOf(labels));
                     labels++;
                 }
             }

@@ -11,6 +11,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.MapTask;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
@@ -60,6 +61,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Map<Cen
             context.write(a, assocArray);
         }
         super.cleanup(context);
+        System.out.println("Cleanup Done");
     }
 
     @Override
@@ -86,6 +88,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Map<Cen
         List<DataPoint> dp = new ArrayList<>();
 
         //Fill assoc array with list
+
         if (assocArray.get(nearest) == null) {
             dp.add(value);
             assocArray.put(nearest, dp);
@@ -94,6 +97,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Map<Cen
             dp.add(value);
             assocArray.put(nearest,dp);
         }
+        System.out.println("Mapping");
         //Does not called in IMC
         //context.write(nearest, value);
     }
