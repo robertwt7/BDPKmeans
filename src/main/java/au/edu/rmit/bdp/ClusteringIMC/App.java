@@ -13,6 +13,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -64,7 +65,7 @@ public class App extends Configured implements Tool
         job.setReducerClass(KmeansReducing.class);
         job.setJarByClass(KmeansMapping.class);
         job.setMapOutputKeyClass(Centroid.class);
-        job.setMapOutputValueClass(List.class);
+        job.setMapOutputValueClass(Text.class);
 
         //Check the data if it's available or not
         FileSystem fs = FileSystem.get(conf);
@@ -93,9 +94,7 @@ public class App extends Configured implements Tool
         //Generate centroids based on the maximum points available (randomised)
         generateCentroids(args, conf, centroidDataPath, col1, col2);
 
-        try {
-
-        job.setNumReduceTasks(1);
+        job.setNumReduceTasks(2);
         FileOutputFormat.setOutputPath(job, outputDir);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
@@ -129,7 +128,9 @@ public class App extends Configured implements Tool
             job.setOutputFormatClass(SequenceFileOutputFormat.class);
             job.setOutputKeyClass(Centroid.class);
             job.setOutputValueClass(DataPoint.class);
-            job.setNumReduceTasks(1);
+            job.setMapOutputKeyClass(Centroid.class);
+            job.setMapOutputValueClass(Text.class);
+            job.setNumReduceTasks(3);
 
             job.waitForCompletion(true);
             iteration++;
@@ -155,11 +156,6 @@ public class App extends Configured implements Tool
             }
 
         }
-        } catch (Exception e){
-            printLongerTrace(e);
-            throw e;
-        }
-
         return 0;
     }
 

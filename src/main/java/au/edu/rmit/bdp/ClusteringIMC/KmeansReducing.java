@@ -3,7 +3,6 @@ package au.edu.rmit.bdp.ClusteringIMC;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import au.edu.rmit.bdp.model.Centroid;
 import org.apache.hadoop.conf.Configuration;
@@ -11,34 +10,37 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import au.edu.rmit.bdp.model.DataPoint;
 import de.jungblut.math.DoubleVector;
 
-public class KmeansReducing extends Reducer<Centroid, List<DataPoint>, Centroid, DataPoint>{
+public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>{
 
-    public static enum Counter{
+    public enum Counter{
         CONVERGED
     }
 
     private final List<Centroid> centers = new ArrayList<>();
 
     @Override
-    protected void reduce(Centroid key, Iterable<List<DataPoint>> values, Context context) throws IOException, InterruptedException {
+    protected void reduce(Centroid key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         List<DataPoint> vectorList = new ArrayList<>();
         DoubleVector newCenter = null;
 
         //get every of the data point based on specific centroid in the assoc array
-        for (List<DataPoint> v : values) {
-            for (DataPoint value : v){
-                vectorList.add(new DataPoint(value));
+        for (Text v : values) {
+            String[] points = v.toString().split(", ");
+            for (String value : points){
+                String[] indexValues = values.toString().split(" -> ");
+                DataPoint temp = new DataPoint(Double.valueOf(indexValues[1]));
+                vectorList.add(temp);
                 if (newCenter == null) {
-                    newCenter = value.getVector().deepCopy();
-                    System.out.println("New center added");
+                    newCenter = temp.getVector().deepCopy();
                 }
                 else
-                    newCenter = newCenter.add(value.getVector());
+                    newCenter = newCenter.add(temp.getVector());
             }
         }
         newCenter = newCenter.divide(vectorList.size());
