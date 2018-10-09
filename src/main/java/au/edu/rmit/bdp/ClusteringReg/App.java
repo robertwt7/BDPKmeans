@@ -76,8 +76,8 @@ public class App extends Configured implements Tool
         }
 
         //Lists for columns 1 and 2 data points
-        List<Integer> col1 = new ArrayList<Integer>();
-        List<Integer> col2 = new ArrayList<Integer>();
+        List<Double> col1 = new ArrayList<>();
+        List<Double> col2 = new ArrayList<>();
 
         //Generate the points previously so the dataPoints is available for input file
         generatePoints(args, conf, pointDataPath, col1, col2);
@@ -135,7 +135,7 @@ public class App extends Configured implements Tool
     }
 
 
-    public static void generatePoints(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws IOException {
+    public static void generatePoints(String[] args, Configuration conf, Path out, List<Double> col1, List<Double> col2) throws IOException {
         try (Reader in = new FileReader(args[0])){
             Iterable<CSVRecord> records = CSVFormat.RFC4180.parse(in);
 
@@ -154,8 +154,8 @@ public class App extends Configured implements Tool
                     } else {
                         String columnOne = record.get(Integer.valueOf(args[3]));
                         String columnTwo = record.get(Integer.valueOf(args[4]));
-                        int point1 = Integer.parseInt(columnOne);
-                        int point2 = Integer.parseInt(columnTwo);
+                        double point1 = Double.parseDouble(columnOne);
+                        double point2 = Double.parseDouble(columnTwo);
                         dataWriter.append(new Centroid(new DataPoint(0, 0)), new DataPoint(point1, point2));
                         col1.add(point1);
                         col2.add(point2);
@@ -166,7 +166,7 @@ public class App extends Configured implements Tool
     }
 
     //Taking the amount or K from user input from argument 2 and create random clusters
-    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws
+    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Double> col1, List<Double> col2) throws
             IOException, InterruptedException{
         final IntWritable value = new IntWritable(0);
         SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
@@ -175,7 +175,7 @@ public class App extends Configured implements Tool
         try (SequenceFile.Writer centerWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue)) {
             for (int i = 0; i < Integer.valueOf(args[2]); i++) {
                 Random r = new Random();
-                centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
+                centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1).intValue()), r.nextInt(Collections.max(col2).intValue()))), value);
             }
         }
 
