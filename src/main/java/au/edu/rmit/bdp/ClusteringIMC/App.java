@@ -83,8 +83,8 @@ public class App extends Configured implements Tool
         }
 
         //Lists for columns 1 and 2 data points
-        List<Integer> col1 = new ArrayList<Integer>();
-        List<Integer> col2 = new ArrayList<Integer>();
+        List<Double> col1 = new ArrayList<Double>();
+        List<Double> col2 = new ArrayList<Double>();
 
         //Generate the points previously so the dataPoints is available for input file
         generatePoints(args, conf, pointDataPath, col1, col2);
@@ -130,7 +130,7 @@ public class App extends Configured implements Tool
             job.setOutputValueClass(DataPoint.class);
             job.setMapOutputKeyClass(Centroid.class);
             job.setMapOutputValueClass(Text.class);
-            job.setNumReduceTasks(3);
+            job.setNumReduceTasks(2);
 
             job.waitForCompletion(true);
             iteration++;
@@ -142,9 +142,9 @@ public class App extends Configured implements Tool
         for (FileStatus status : stati) {
             if (!status.isDirectory()) {
                 Path path = status.getPath();
+                SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
                 if (!path.getName().equals("_SUCCESS")) {
                     LOG.info("FOUND " + path.toString());
-                    SequenceFile.Reader.Option opPath = SequenceFile.Reader.file(path);
                     try (SequenceFile.Reader reader = new SequenceFile.Reader(conf, opPath)){
                         Centroid key = new Centroid();
                         DataPoint v = new DataPoint();
@@ -161,7 +161,7 @@ public class App extends Configured implements Tool
 
     //5 arguments: input, output, number of K, column 1, column 2
     //Read csv from 1st arguments
-    public static void generatePoints(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws IOException{
+    public static void generatePoints(String[] args, Configuration conf, Path out, List<Double> col1, List<Double> col2) throws IOException{
         try (Reader in = new FileReader(args[0])){
             Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
 
@@ -181,8 +181,8 @@ public class App extends Configured implements Tool
                 } else {
                     String columnOne = record.get(Integer.valueOf(args[3]));
                     String columnTwo = record.get(Integer.valueOf(args[4]));
-                    int point1 = Integer.valueOf(columnOne);
-                    int point2 = Integer.valueOf(columnTwo);
+                    Double point1 = Double.valueOf(columnOne);
+                    Double point2 = Double.valueOf(columnTwo);
                     dataWriter.append(new Centroid(new DataPoint(0,0)), new DataPoint(point1,point2));
                     col1.add(point1);
                     col2.add(point2);
@@ -200,8 +200,15 @@ public class App extends Configured implements Tool
         }
     }
 
+
+    public static Double randRange(Double min, Double max){
+        Random r = new Random();
+        Double range1 = (r.nextDouble() * max - min) + min;
+        return range1;
+    }
+
     //Taking the amount or K from user input from argument 2 and create random clusters
-    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Integer> col1, List<Integer> col2) throws
+    public static void generateCentroids(String[] args, Configuration conf, Path out, List<Double> col1, List<Double> col2) throws
             IOException, InterruptedException{
         SequenceFile.Writer.Option opPath = SequenceFile.Writer.file(out);
         SequenceFile.Writer.Option opKey = SequenceFile.Writer.keyClass(Centroid.class);
@@ -209,9 +216,11 @@ public class App extends Configured implements Tool
         SequenceFile.Writer centerWriter = SequenceFile.createWriter(conf, opPath, opKey, opValue);
         final IntWritable value = new IntWritable(0);
         for (int i = 0; i < Integer.valueOf(args[2]); i++){
-            Random r = new Random();
-            centerWriter.append(new Centroid(new DataPoint(r.nextInt(Collections.max(col1)), r.nextInt(Collections.max(col2)))), value);
+            centerWriter.append(new Centroid(new DataPoint(randRange(Collections.min(col1), Collections.max(col2)),
+                            randRange(Collections.min(col1), Collections.max(col2)))),
+                    value);
         }
         IOUtils.closeStream(centerWriter);
     }
+
 }

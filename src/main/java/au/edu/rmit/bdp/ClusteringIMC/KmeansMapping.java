@@ -63,7 +63,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
     }
 
     public Map<Centroid, List<DataPoint>> getMap() {
-        if(null == assocArray) //lazy loading
+        if(assocArray == null) //lazy loading
             assocArray = new HashMap<Centroid, List<DataPoint>>();
         return assocArray;
     }
@@ -72,7 +72,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
     protected void cleanup(Context context) throws IOException, InterruptedException {
         super.cleanup(context);
         Text value = new Text();
-        StringBuilder builder = new StringBuilder("");
+        StringBuilder builder = new StringBuilder();
         for (Centroid a : assocArray.keySet()){
             if (assocArray.get(a).toArray().length > 0){
                 for (DataPoint point : assocArray.get(a)){

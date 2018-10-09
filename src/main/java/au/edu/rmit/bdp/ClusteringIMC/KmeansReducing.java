@@ -49,13 +49,13 @@ public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>
                     System.out.println(m.group(1));
                     String xy[] = m.group(1).split(",");
                     temp = new DataPoint(Double.valueOf(xy[0]), Double.valueOf(xy[1]));
+                    vectorList.add(temp);
+                    if (newCenter == null) {
+                        newCenter = temp.getVector().deepCopy();
+                    }
+                    else
+                        newCenter = newCenter.add(temp.getVector());
                 }
-                vectorList.add(temp);
-                if (newCenter == null) {
-                    newCenter = temp.getVector().deepCopy();
-                }
-                else
-                    newCenter = newCenter.add(temp.getVector());
             }
         }
         newCenter = newCenter.divide(vectorList.size());
@@ -66,7 +66,7 @@ public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>
             context.write(newCentroid, vector);
         }
         if (newCentroid.update(key))
-            context.getCounter(Counter.CONVERGED).increment(1);
+            context.getCounter(KmeansReducing.Counter.CONVERGED).increment(1);
 
     }
 
