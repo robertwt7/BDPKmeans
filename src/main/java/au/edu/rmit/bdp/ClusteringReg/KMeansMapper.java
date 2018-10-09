@@ -56,8 +56,6 @@ public class KMeansMapper extends Mapper<Centroid, DataPoint, Centroid, DataPoin
 
     @Override
     protected void map(Centroid key, DataPoint value, Context context) throws IOException, InterruptedException {
-        super.map(key, value, context);
-
         Centroid nearest = null;
         double nearestDistance = Double.MAX_VALUE;
 

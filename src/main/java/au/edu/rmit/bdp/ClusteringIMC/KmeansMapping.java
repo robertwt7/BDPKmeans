@@ -4,6 +4,8 @@ import au.edu.rmit.bdp.Distances.DistanceMeasurer;
 import au.edu.rmit.bdp.Distances.EuclidianDistance;
 import au.edu.rmit.bdp.model.Centroid;
 import au.edu.rmit.bdp.model.DataPoint;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -23,6 +25,9 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
 
     private final List<Centroid> centers = new ArrayList<>();
     private DistanceMeasurer distanceMeasurer;
+
+    //Logging
+    private static final Log LOG = LogFactory.getLog(App.class);
 
     private List<DataPoint> dp;
 
@@ -67,14 +72,19 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
     protected void cleanup(Context context) throws IOException, InterruptedException {
         super.cleanup(context);
         Text value = new Text();
+        StringBuilder builder = new StringBuilder();
         for (Centroid a : assocArray.keySet()){
             if (assocArray.get(a).toArray().length > 0){
                 for (DataPoint point : assocArray.get(a)){
-                    value.set(value + point.toString() + ", ");
+                    LOG.info("Association per point: " + point.toString());
+                    builder.append(point).append(",");
                 }
-                context.write(a, value);
             }
+            builder.setLength(builder.length() - 1);
+            value.set(builder.toString());
+            context.write(a, value);
         }
+
     }
 
     @Override

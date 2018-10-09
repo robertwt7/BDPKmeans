@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import au.edu.rmit.bdp.model.Centroid;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,6 +26,9 @@ public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>
 
     private final List<Centroid> centers = new ArrayList<>();
 
+    //Logging
+    private static final Log LOG = LogFactory.getLog(App.class);
+
     @Override
     protected void reduce(Centroid key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         List<DataPoint> vectorList = new ArrayList<>();
@@ -33,8 +38,9 @@ public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>
         for (Text v : values) {
             String[] points = v.toString().split(", ");
             for (String value : points){
-                String[] indexValues = values.toString().split(" -> ");
-                DataPoint temp = new DataPoint(Double.valueOf(indexValues[1]));
+                //String[] indexValues = values.toString().split(" -> ");
+                LOG.info("Per Points: " + value);
+                DataPoint temp = new DataPoint(Double.valueOf(value));
                 vectorList.add(temp);
                 if (newCenter == null) {
                     newCenter = temp.getVector().deepCopy();
