@@ -3,6 +3,8 @@ package au.edu.rmit.bdp.ClusteringIMC;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import au.edu.rmit.bdp.model.Centroid;
 import org.apache.commons.logging.Log;
@@ -36,11 +38,18 @@ public class KmeansReducing extends Reducer<Centroid, Text, Centroid, DataPoint>
 
         //get every of the data point based on specific centroid in the assoc array
         for (Text v : values) {
-            String[] points = v.toString().split(", ");
+            String[] points = v.toString().split(";");
             for (String value : points){
                 //String[] indexValues = values.toString().split(" -> ");
-                LOG.info("Per Points: " + value);
-                DataPoint temp = new DataPoint(Double.valueOf(value));
+                //Taking every points in the bracket [ ] and put the value inside a new datapoints
+                Pattern p = Pattern.compile("\\[(.*?)\\]");
+                Matcher m = p.matcher(value);
+                DataPoint temp = new DataPoint(0);
+                while(m.find()) {
+                    System.out.println(m.group(1));
+                    String xy[] = m.group(1).split(",");
+                    temp = new DataPoint(Double.valueOf(xy[0]), Double.valueOf(xy[1]));
+                }
                 vectorList.add(temp);
                 if (newCenter == null) {
                     newCenter = temp.getVector().deepCopy();

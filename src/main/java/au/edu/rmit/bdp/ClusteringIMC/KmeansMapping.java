@@ -77,7 +77,7 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
             if (assocArray.get(a).toArray().length > 0){
                 for (DataPoint point : assocArray.get(a)){
                     LOG.info("Association per point: " + point.toString());
-                    builder.append(point).append(",");
+                    builder.append(point).append(";");
                 }
             }
             builder.setLength(builder.length() - 1);
