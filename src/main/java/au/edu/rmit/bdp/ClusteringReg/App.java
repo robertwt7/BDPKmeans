@@ -101,7 +101,7 @@ public class App extends Configured implements Tool
 
         long counter = job.getCounters().findCounter(KMeansReducer.Counter2.CONVERGED).getValue();
         iteration++;
-        while (counter > 0){
+        while (counter > 0 && iteration < 101){
             conf = new Configuration();
             conf.set("centroid.path", centroidDataPath.toString());
             conf.set("num.iteration", iteration + "");
