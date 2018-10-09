@@ -72,17 +72,17 @@ public class KmeansMapping extends Mapper<Centroid, DataPoint, Centroid, Text>{
     protected void cleanup(Context context) throws IOException, InterruptedException {
         super.cleanup(context);
         Text value = new Text();
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder("");
         for (Centroid a : assocArray.keySet()){
             if (assocArray.get(a).toArray().length > 0){
                 for (DataPoint point : assocArray.get(a)){
                     LOG.info("Association per point: " + point.toString());
                     builder.append(point).append(";");
                 }
+                builder.setLength(builder.length() - 1);
+                value.set(builder.toString());
+                context.write(a, value);
             }
-            builder.setLength(builder.length() - 1);
-            value.set(builder.toString());
-            context.write(a, value);
         }
 
     }
